@@ -323,8 +323,8 @@ export default {
         "src/board.glb",
         (gltf) => {
           gltf.scene.position.set(5, 0, 10);
-          this.camera.lookAt(5, 0, 10);
-          this.controls.target.set(5, 0, 10);
+          this.camera.lookAt(5, 2, 10);
+          this.controls.target.set(5, 2, 10);
           this.scene.add(gltf.scene);
         },
         undefined,
@@ -406,7 +406,6 @@ export default {
       if (this.mixer) {
         this.mixer.update(0.01);
       }
-
       TWEEN.update();
       this.renderer.render(this.scene, this.camera);
     },
