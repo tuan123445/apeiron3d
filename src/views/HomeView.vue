@@ -1,415 +1,567 @@
 <template>
   <main>
-    <canvas
+    <!-- <canvas
       ref="constellationBG"
       style="width: 100%; height: -webkit-fill-available"
-    ></canvas>
+    ></canvas> -->
+    <!-- <el-progress :percentage="progressValue" /> -->
+    <div class="progress-bar-contain">
+      <progress value="0" max="100" id="progress-bar"></progress>
+    </div>
+    <button
+      @click="stopMusic"
+      style="position: absolute"
+      class="stop-btn"
+      id="stop-btn"
+    >
+      Stop music
+    </button>
+    <button
+      @click="replayMusic"
+      style="position: absolute"
+      class="replay-btn"
+      id="replay-btn"
+    >
+      Replay music
+    </button>
   </main>
 </template>
 
-<script>
+<style lang="scss">
+.progress-bar-contain {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  #progress-bar {
+    width: 30%;
+  }
+}
+
+.stop-btn,
+.replay-btn {
+  display: none;
+  top: 20px;
+  right: 20px;
+}
+</style>
+
+<script setup>
 import * as THREE from "three";
 import * as TWEEN from "@tweenjs/tween.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-export default {
-  mounted() {
-    return new Promise((rex) => rex())
-      .then(() => {
-        this.init();
-      })
-      .then(() => {
-        this.animate();
-      });
-  },
-  data() {
-    this.scene = null;
-    this.camera = null;
-    this.renderer = null;
-    this.control = null;
-    this.mixer = null;
-    this.mixers = null;
-    this.clips = null;
-    this.board = null;
-    this.loader = new GLTFLoader();
-    this.raycaster = new THREE.Raycaster();
-    this.pointer = new THREE.Vector2();
 
-    // view
-    this.coffeeShop = null;
-    this.meeShop = null;
-    this.doodBar = null;
-    this.starShop = null;
-    this.temple = null;
-    this.startLogo = null;
-    this.startBtn = null;
+// let progressValue = ref(20);
+let scene = null;
+let camera = null;
+let renderer = null;
+let controls = null;
+let mixer = null;
+let clips = null;
+let manager = new THREE.LoadingManager();
+let loader = new GLTFLoader(manager);
+let raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const audioListener = new THREE.AudioListener();
+let oceanAmbientSound = null;
+let coffeeShop = null;
+let meeShop = null;
+let doodBar = null;
+let starShop = null;
+let temple = null;
+let startLogo = null;
+let startBtn = null;
 
-    return {};
-  },
-  methods: {
-    onPointerMove(event) {
-      this.pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-      this.pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      this.raycaster.setFromCamera(this.pointer, this.camera);
-      var intersects = this.raycaster.intersectObjects(
-        this.scene.children,
-        true
-      );
+function onPointerMove(event) {
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  var intersects = raycaster.intersectObjects(scene.children, true);
 
-      if (intersects.length > 0) {
-        if (this.startLogo) {
-          this.scene.remove(this.startLogo);
-          this.scene.remove(this.startBtn);
-          this.addBoard();
-        }
-
-        intersects.forEach((item) => {
-          switch (item.object.name) {
-            case "Discord":
-              window.open("https://discord.gg/UAJsWwZygr", "_blank");
-              break;
-            case "OpenSea":
-              window.open(
-                "https://opensea.io/collection/apeironplanet",
-                "_blank"
-              );
-              break;
-            case "twitter":
-              window.open("https://twitter.com/ApeironNFT", "_blank");
-              break;
-            case "telegram":
-              window.open("https://t.me/apeiron_official", "_blank");
-              break;
-            case "website":
-              window.open("https://apeironnft.com/", "_blank");
-              break;
-            case "market":
-              window.open("https://marketplace.apeironnft.com/", "_blank");
-              break;
-            case "planetCoffeetab":
-              this.deleteScene();
-              this.addCoffeeShop();
-              break;
-            case "starSaletab":
-              this.deleteScene();
-              this.addStarShop();
-              break;
-            case "doodBartab":
-              this.deleteScene();
-              this.addDoodBar();
-              break;
-            case "prayTempletab":
-              this.deleteScene();
-              this.addTemple();
-              break;
-            case "meeShoptab":
-              this.deleteScene();
-              this.addMeeShop();
-              break;
-            case "Object_17001_34":
-              this.carAnimation();
-              break;
-            case "Cylinder013_10":
-              this.barDoorAnimation();
-              break;
-            case "polySurface622_lambert6_0_1":
-              this.coffeeDoorAnimation();
-              break;
-          }
-        });
-      }
-    },
-    deleteScene() {
-      if (this.coffeeShop) {
-        this.scene.remove(this.coffeeShop);
-      }
-      if (this.meeShop) {
-        this.scene.remove(this.meeShop);
-      }
-      if (this.doodBar) {
-        this.scene.remove(this.doodBar);
-      }
-      if (this.starShop) {
-        this.scene.remove(this.starShop);
-      }
-      if (this.temple) {
-        this.scene.remove(this.temple);
-      }
-    },
-    init() {
-      this.scene = new THREE.Scene();
-
-      // camera setup
-      this.camera = new THREE.PerspectiveCamera(
-        12,
-        window.innerWidth / window.innerHeight,
-        1,
-        1000
-      );
-      // this.camera.rotation.set(-2.91, 1.47, 0.07);
-      this.camera.position.set(9.076, 16.024, 40);
-
-      // Create ambient light and add to scene.
-      var light = new THREE.AmbientLight(0xffffff, 1); // soft white light
-      this.scene.add(light);
-      light = new THREE.DirectionalLight(0xffffff, 3); // soft white light
-      light.castShadow = true;
-      light.shadow.camera.far = 20;
-      light.shadow.mapSize.set(1024, 1024);
-      light.shadow.normalBias = 0.05;
-      light.position.set(1.5, 1, 3);
-      this.scene.add(light);
-
-      this.addStartLogo();
-      this.addStartBtn();
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: this.$refs.constellationBG,
-        antialias: true,
-      });
-      this.renderer.domElement.addEventListener("click", this.onPointerMove);
-
-      // render
-      this.renderer.setSize(window.innerWidth, window.innerHeight, false);
-      this.renderer.physicallyCorrectLights = true;
-      this.renderer.outputEncoding = THREE.sRGBEncoding;
-      this.renderer.toneMapping = THREE.CineonToneMapping;
-      this.renderer.toneMappingExposure = 1.75;
-      this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-      this.controls.rotateSpeed = 0.5;
-      this.controls.mouseButtons = {
-        LEFT: THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN,
-      };
-      this.controls.listenToKeyEvents(window);
-    },
-    addStartLogo() {
-      this.loader.load(
-        "./src/logo.glb",
-        (gltf) => {
-          this.startLogo = gltf.scene;
-          this.camera.lookAt(
-            this.startLogo.position.x,
-            this.startLogo.position.y,
-            this.startLogo.position.z
-          );
-          this.controls.target.set(
-            this.startLogo.position.x,
-            this.startLogo.position.y,
-            this.startLogo.position.z
-          );
-          new TWEEN.Tween(this.startLogo.rotation)
-            .repeat(Infinity)
-            .to({ x: 0, y: Math.PI, z: 0 })
-            .duration(5000)
-            .start();
-          this.scene.add(gltf.scene);
-        },
-        undefined,
-        function (err) {
-          console.log(err);
-        }
-      );
-    },
-    addStartBtn() {
-      this.loader.load(
-        "./src/startBtn.glb",
-        (gltf) => {
-          this.startBtn = gltf.scene;
-          this.scene.add(gltf.scene);
-        },
-        undefined,
-        function (err) {
-          console.log(err);
-        }
-      );
-    },
-    addCoffeeShop() {
-      this.addObject("src/coffeeShop.glb", "coffeeShop");
-    },
-    addMeeShop() {
-      this.addObject("src/meeShop.glb", "meeShop");
-    },
-    addDoodBar() {
-      // this.addObject("./src/doodBar.glb", "doodBar");
-      this.loader.load(
-        "src/doodBar.glb",
-        (gltf) => {
-          this.doodBar = gltf.scene;
-          // gltf.scene.position.set(-5, 0, -10);
-          this.camera.lookAt(0, 0, 0);
-          this.controls.target.set(0, 0, 0);
-          this.scene.background = new THREE.Color(0x000000);
-          this.scene.add(gltf.scene);
-          this.mixer = new THREE.AnimationMixer(gltf.scene);
-          this.clips = gltf.animations;
-
-          this.clips.forEach((ani) => {
-            if (
-              ani.name != "bar_doorAction" &&
-              ani.name != "Cylinder.028Action"
-            ) {
-              const animation = THREE.AnimationClip.findByName(
-                this.clips,
-                ani.name
-              );
-              let animationAction = this.mixer.clipAction(animation);
-              animationAction.play();
+  if (intersects.length > 0) {
+    if (startLogo) {
+      scene.remove(startLogo);
+      scene.remove(startBtn);
+      addBoard();
+      startLogo = null;
+      startBtn = null;
+    }
+    intersects.forEach((item) => {
+      switch (item.object.name) {
+        case "Discord":
+          window.open("https://discord.gg/UAJsWwZygr", "_blank");
+          break;
+        case "OpenSea":
+          window.open("https://opensea.io/collection/apeironplanet", "_blank");
+          break;
+        case "twitter":
+          window.open("https://twitter.com/ApeironNFT", "_blank");
+          break;
+        case "telegram":
+          window.open("https://t.me/apeiron_official", "_blank");
+          break;
+        case "website":
+          window.open("https://apeironnft.com/", "_blank");
+          break;
+        case "market":
+          window.open("https://marketplace.apeironnft.com/", "_blank");
+          break;
+        case "planetCoffeetab":
+          if (!coffeeShop) {
+            if (oceanAmbientSound) {
+              stopMusic();
+              oceanAmbientSound = null;
             }
-          });
-        },
-        undefined,
-        function (err) {
-          console.log(err);
-        }
-      );
-    },
-    addStarShop() {
-      this.loader.load(
-        "src/starShop.glb",
-        (gltf) => {
-          this.starShop = gltf.scene;
-          this.scene.background = new THREE.Color(0xbfe3dd);
-          this.scene.add(gltf.scene);
-          this.camera.lookAt(0, 0, 0);
-          this.controls.target.set(0, 0, 0);
-          this.mixer = new THREE.AnimationMixer(gltf.scene);
-          this.clips = gltf.animations;
-
-          // cat
-          const cat = THREE.AnimationClip.findByName(this.clips, "Take 001");
-          let catAction = this.mixer.clipAction(cat);
-          catAction.play();
-
-          // doods
-          this.callAnimation("Cube.020Action");
-          this.callAnimation("dood1Action");
-        },
-        undefined,
-        function (err) {
-          console.log(err);
-        }
-      );
-    },
-    addTemple() {
-      this.loader.load(
-        "src/temple.glb",
-        (gltf) => {
-          this.starShop = gltf.scene;
-          this.scene.background = new THREE.Color(0xbfe3dd);
-          this.scene.add(gltf.scene);
-          this.camera.lookAt(0, 0, 0);
-          this.controls.target.set(0, 0, 0);
-          this.mixer = new THREE.AnimationMixer(gltf.scene);
-          this.clips = gltf.animations;
-          this.clips.forEach((ani) => {
-            const animation = THREE.AnimationClip.findByName(
-              this.clips,
-              ani.name
-            );
-            let animationAction = this.mixer.clipAction(animation);
-            animationAction.play();
-          });
-        },
-        undefined,
-        function (err) {
-          console.log(err);
-        }
-      );
-    },
-    addBoard() {
-      this.loader.load(
-        "src/board.glb",
-        (gltf) => {
-          gltf.scene.position.set(5, 0, 10);
-          this.camera.lookAt(5, 2, 10);
-          this.controls.target.set(5, 2, 10);
-          this.scene.add(gltf.scene);
-        },
-        undefined,
-        function (err) {
-          console.log(err);
-        }
-      );
-    },
-    addObject(link, type) {
-      this.loader.load(
-        link,
-        (gltf) => {
-          if (type == "meeShop") {
-            this.meeShop = gltf.scene;
-          } else if (type == "coffeeShop") {
-            this.coffeeShop = gltf.scene;
-          } else if (type == "addLogo") {
-            this.startLogo = gltf.scene;
+            return new Promise((rex) => rex())
+              .then(() => {
+                deleteScene();
+              })
+              .then(() => {
+                addCoffeeShop();
+              });
           }
-          this.scene.background = new THREE.Color(0x000000);
-          this.scene.add(gltf.scene);
-          this.camera.lookAt(0, 0, 0);
-          this.controls.target.set(0, 0, 0);
-          this.mixer = new THREE.AnimationMixer(gltf.scene);
-          this.clips = gltf.animations;
-        },
-        undefined,
-        function (err) {
-          console.log(err);
+          break;
+        case "starSaletab":
+          if (!starShop) {
+            if (oceanAmbientSound) {
+              stopMusic();
+              oceanAmbientSound = null;
+            }
+            return new Promise((rex) => rex())
+              .then(() => {
+                deleteScene();
+              })
+              .then(() => {
+                addStarShop();
+              });
+          }
+          addStarShop();
+          break;
+        case "doodBartab":
+          if (oceanAmbientSound) {
+            stopMusic();
+            oceanAmbientSound = null;
+          }
+          deleteScene();
+          addDoodBar();
+          break;
+        case "prayTempletab":
+          if (oceanAmbientSound) {
+            stopMusic();
+            oceanAmbientSound = null;
+          }
+          deleteScene();
+          addTemple();
+          break;
+        case "meeShoptab":
+          if (oceanAmbientSound) {
+            stopMusic();
+            oceanAmbientSound = null;
+          }
+          deleteScene();
+          addMeeShop();
+          break;
+        case "Cylinder013_10":
+          barDoorAnimation();
+          break;
+        case "polySurface622_lambert6_0_1":
+          coffeeDoorAnimation();
+          break;
+      }
+    });
+  }
+}
+
+function deleteScene() {
+  if (coffeeShop) {
+    scene.remove(coffeeShop);
+    coffeeShop = null;
+  }
+  if (meeShop) {
+    scene.remove(meeShop);
+    meeShop = null;
+  }
+  if (doodBar) {
+    scene.remove(doodBar);
+    doodBar = null;
+  }
+  if (starShop) {
+    scene.remove(starShop);
+    starShop = null;
+  }
+  if (temple) {
+    scene.remove(temple);
+    temple = null;
+  }
+}
+
+function init() {
+  scene = new THREE.Scene();
+
+  // camera setup
+  camera = new THREE.PerspectiveCamera(
+    12,
+    window.innerWidth / window.innerHeight,
+    1,
+    1000
+  );
+  // this.camera.rotation.set(-2.91, 1.47, 0.07);
+  camera.position.set(9.076, 16.024, 40);
+
+  // Create ambient light and add to scene.
+  var light = new THREE.AmbientLight(0xffffff, 1); // soft white light
+  scene.add(light);
+  light = new THREE.DirectionalLight(0xffffff, 3); // soft white light
+  light.castShadow = true;
+  light.shadow.camera.far = 20;
+  light.shadow.mapSize.set(1024, 1024);
+  light.shadow.normalBias = 0.05;
+  light.position.set(1.5, 1, 3);
+  scene.add(light);
+
+  const progressBar = document.getElementById("progress-bar");
+  const progressBarContain = document.querySelector(".progress-bar-contain");
+  manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    progressBarContain.style.display = "flex";
+    progressBar.value = (itemsLoaded / itemsTotal) * 100;
+    // progressValue.value = (itemsLoaded / itemsTotal) * 100;
+  };
+
+  manager.onLoad = function () {
+    progressBarContain.style.display = "none";
+    console.log("Loading complete!");
+  };
+
+  addStartLogo();
+  addStartBtn();
+
+  renderer = new THREE.WebGLRenderer({
+    antialias: true,
+  });
+
+  // render
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.physicallyCorrectLights = true;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.CineonToneMapping;
+  renderer.toneMappingExposure = 1.75;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.rotateSpeed = 0.5;
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN,
+  };
+  controls.listenToKeyEvents(window);
+  document.body.appendChild(renderer.domElement);
+}
+
+function addStartLogo() {
+  loader.load(
+    "./src/logo.glb",
+    (gltf) => {
+      startLogo = gltf.scene;
+      camera.lookAt(
+        startLogo.position.x,
+        startLogo.position.y,
+        startLogo.position.z
+      );
+      controls.target.set(
+        startLogo.position.x,
+        startLogo.position.y,
+        startLogo.position.z
+      );
+      new TWEEN.Tween(startLogo.rotation)
+        .repeat(Infinity)
+        .to({ x: 0, y: Math.PI, z: 0 })
+        .duration(5000)
+        .start();
+      scene.add(gltf.scene);
+    },
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+}
+
+function addStartBtn() {
+  loader.load(
+    "./src/startBtn.glb",
+    (gltf) => {
+      startBtn = gltf.scene;
+      scene.add(gltf.scene);
+    },
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+}
+
+function addCoffeeShop() {
+  console.log("debug here");
+  addObject("src/coffeeShop.glb", "coffeeShop");
+}
+
+function addMeeShop() {
+  addObject("src/meeShop.glb", "meeShop");
+}
+
+function addDoodBar() {
+  // this.addObject("./src/doodBar.glb", "doodBar");
+  loader.load(
+    "src/doodBar.glb",
+    (gltf) => {
+      doodBar = gltf.scene;
+      // gltf.scene.position.set(-5, 0, -10);
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+      scene.background = new THREE.Color(0x000000);
+      scene.add(gltf.scene);
+      mixer = new THREE.AnimationMixer(gltf.scene);
+      clips = gltf.animations;
+
+      clips.forEach((ani) => {
+        if (ani.name != "bar_doorAction" && ani.name != "Cylinder.028Action") {
+          const animation = THREE.AnimationClip.findByName(clips, ani.name);
+          let animationAction = mixer.clipAction(animation);
+          animationAction.play();
         }
-      );
+      });
     },
-    carAnimation() {
-      const car = THREE.AnimationClip.findByName(
-        this.clips,
-        "car.001_9Action.001"
-      );
-      let carAction = this.mixer.clipAction(car);
-      carAction.setLoop(THREE.LoopOnce);
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("replay-btn").style.display = "none";
+}
 
-      if (carAction.enabled == true) {
-        carAction.play();
-      } else {
-        carAction.reset();
-      }
-    },
-    barDoorAnimation() {
-      const barDoor = THREE.AnimationClip.findByName(
-        this.clips,
-        "bar_doorAction"
-      );
-      let barDoorAction = this.mixer.clipAction(barDoor);
-      barDoorAction.setLoop(THREE.LoopOnce);
+function addStarShop() {
+  loader.load(
+    "src/starShop.glb",
+    (gltf) => {
+      starShop = gltf.scene;
+      scene.background = new THREE.Color(0xbfe3dd);
+      scene.add(gltf.scene);
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+      mixer = new THREE.AnimationMixer(gltf.scene);
+      clips = gltf.animations;
 
-      if (barDoorAction.enabled == true) {
-        barDoorAction.play();
+      // cat
+      const cat = THREE.AnimationClip.findByName(clips, "Take 001");
+      let catAction = mixer.clipAction(cat);
+      catAction.play();
+      carAnimation();
+      // doods
+      callAnimation("Cube.020Action");
+      callAnimation("dood1Action");
+    },
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("replay-btn").style.display = "none";
+}
+
+function addTemple() {
+  loader.load(
+    "src/temple.glb",
+    (gltf) => {
+      starShop = gltf.scene;
+      scene.background = new THREE.Color(0xbfe3dd);
+      scene.add(gltf.scene);
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+      mixer = new THREE.AnimationMixer(gltf.scene);
+      clips = gltf.animations;
+      clips.forEach((ani) => {
+        const animation = THREE.AnimationClip.findByName(clips, ani.name);
+        let animationAction = mixer.clipAction(animation);
+        animationAction.play();
+      });
+    },
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("replay-btn").style.display = "none";
+}
+
+function addBoard() {
+  loader.load(
+    "src/board.glb",
+    (gltf) => {
+      gltf.scene.position.set(5, 0, 10);
+      camera.lookAt(5, 2, 10);
+      controls.target.set(5, 2, 10);
+      scene.add(gltf.scene);
+    },
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+}
+
+function addObject(link, type) {
+  loader.load(
+    link,
+    (gltf) => {
+      if (type == "meeShop") {
+        meeShop = gltf.scene;
+      } else if (type == "coffeeShop") {
+        coffeeShop = gltf.scene;
+      } else if (type == "addLogo") {
+        startLogo = gltf.scene;
       }
+      scene.background = new THREE.Color(0x000000);
+      scene.add(gltf.scene);
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+      mixer = new THREE.AnimationMixer(gltf.scene);
+      clips = gltf.animations;
     },
-    coffeeDoorAnimation() {
-      const barDoor = THREE.AnimationClip.findByName(
-        this.clips,
-        "coffee_door_open"
-      );
-      let barDoorAction = this.mixer.clipAction(barDoor);
-      barDoorAction.setLoop(THREE.LoopOnce);
-      if (barDoorAction.enabled == true) {
-        barDoorAction.play();
-        barDoorAction.clampWhenFinished = true;
-      }
+    undefined,
+    function (err) {
+      console.log(err);
+    }
+  );
+  document.getElementById("stop-btn").style.display = "none";
+  document.getElementById("replay-btn").style.display = "none";
+}
+
+function carAnimation() {
+  const car = THREE.AnimationClip.findByName(clips, "car.001_9Action.001");
+  let carAction = mixer.clipAction(car);
+
+  if (carAction.enabled == true) {
+    carAction.play();
+  } else {
+    carAction.reset();
+  }
+}
+
+function addMusic() {
+  // add the listener to the camera
+  camera.add(audioListener);
+
+  // instantiate audio object
+  oceanAmbientSound = new THREE.Audio(audioListener);
+
+  // add the audio object to the scene
+  scene.add(oceanAmbientSound);
+
+  // instantiate a loader
+  const loader = new THREE.AudioLoader();
+
+  // load a resource
+  loader.load(
+    // resource URL
+    "src/Crazy_Frog.mp3",
+
+    // onLoad callback
+    function (audioBuffer) {
+      // set the audio object buffer to the loaded object
+      oceanAmbientSound.setBuffer(audioBuffer);
+
+      // play the audio
+      oceanAmbientSound.play();
     },
-    callAnimation(name) {
-      const animation = THREE.AnimationClip.findByName(this.clips, name);
-      let animationAction = this.mixer.clipAction(animation);
-      animationAction.play();
+
+    // onProgress callback
+    function (xhr) {
+      console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
     },
-    animate() {
-      requestAnimationFrame(this.animate);
-      // background
-      if (this.mixer) {
-        this.mixer.update(0.01);
-      }
-      TWEEN.update();
-      this.renderer.render(this.scene, this.camera);
-    },
-  },
-};
+
+    // onError callback
+    function (err) {
+      console.log("An error happened: ", err);
+    }
+  );
+  document.getElementById("stop-btn").style.display = "unset";
+  document.getElementById("replay-btn").style.display = "none";
+}
+
+function stopMusic() {
+  if (oceanAmbientSound) {
+    oceanAmbientSound.pause();
+    document.getElementById("stop-btn").style.display = "none";
+    document.getElementById("replay-btn").style.display = "unset";
+  }
+}
+
+function replayMusic() {
+  if (oceanAmbientSound) {
+    oceanAmbientSound.play();
+    document.getElementById("stop-btn").style.display = "unset";
+    document.getElementById("replay-btn").style.display = "none";
+  }
+}
+
+function barDoorAnimation() {
+  if (!oceanAmbientSound) {
+    addMusic();
+  }
+  const barDoor = THREE.AnimationClip.findByName(clips, "bar_doorAction");
+  let barDoorAction = mixer.clipAction(barDoor);
+  barDoorAction.setLoop(THREE.LoopOnce);
+
+  if (barDoorAction.enabled == true) {
+    barDoorAction.play();
+  }
+}
+
+function coffeeDoorAnimation() {
+  const barDoor = THREE.AnimationClip.findByName(clips, "coffee_door_open");
+  let barDoorAction = mixer.clipAction(barDoor);
+  barDoorAction.setLoop(THREE.LoopOnce);
+  if (barDoorAction.enabled == true) {
+    barDoorAction.play();
+    barDoorAction.clampWhenFinished = true;
+  }
+}
+
+function callAnimation(name) {
+  const animation = THREE.AnimationClip.findByName(clips, name);
+  let animationAction = mixer.clipAction(animation);
+  animationAction.play();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  // background
+  if (mixer) {
+    mixer.update(0.01);
+  }
+  TWEEN.update();
+  renderer.render(scene, camera);
+}
+
+new Promise((rex) => rex())
+  .then(async () => {
+    await init();
+  })
+  .then(() => {
+    animate();
+  });
+
+window.addEventListener("click", onPointerMove);
 </script>
