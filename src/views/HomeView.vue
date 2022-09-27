@@ -57,13 +57,14 @@ export default {
       );
 
       if (intersects.length > 0) {
+        if (this.startLogo) {
+          this.scene.remove(this.startLogo);
+          this.scene.remove(this.startBtn);
+          this.addBoard();
+        }
+
         intersects.forEach((item) => {
           switch (item.object.name) {
-            case "start_btn":
-              this.scene.remove(this.startLogo);
-              this.scene.remove(this.startBtn);
-              this.addBoard();
-              break;
             case "Discord":
               window.open("https://discord.gg/UAJsWwZygr", "_blank");
               break;
