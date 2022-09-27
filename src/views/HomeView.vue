@@ -226,15 +226,15 @@ export default {
       );
     },
     addCoffeeShop() {
-      this.addObject("./src/coffeeShop.glb", "coffeeShop");
+      this.addObject("src/coffeeShop.glb", "coffeeShop");
     },
     addMeeShop() {
-      this.addObject("./src/meeShop.glb", "meeShop");
+      this.addObject("src/meeShop.glb", "meeShop");
     },
     addDoodBar() {
       // this.addObject("./src/doodBar.glb", "doodBar");
       this.loader.load(
-        "./src/doodBar.glb",
+        "src/doodBar.glb",
         (gltf) => {
           this.doodBar = gltf.scene;
           // gltf.scene.position.set(-5, 0, -10);
@@ -267,7 +267,7 @@ export default {
     },
     addStarShop() {
       this.loader.load(
-        "./src/starShop.glb",
+        "src/starShop.glb",
         (gltf) => {
           this.starShop = gltf.scene;
           this.scene.background = new THREE.Color(0xbfe3dd);
@@ -294,7 +294,7 @@ export default {
     },
     addTemple() {
       this.loader.load(
-        "./src/temple.glb",
+        "src/temple.glb",
         (gltf) => {
           this.starShop = gltf.scene;
           this.scene.background = new THREE.Color(0xbfe3dd);
@@ -320,7 +320,7 @@ export default {
     },
     addBoard() {
       this.loader.load(
-        "./src/board.glb",
+        "src/board.glb",
         (gltf) => {
           gltf.scene.position.set(5, 0, 10);
           this.camera.lookAt(5, 0, 10);
