@@ -614,5 +614,5 @@ new Promise((rex) => rex())
     animate();
   });
 
-window.addEventListener("click", onPointerMove);
+document.addEventListener("click", onPointerMove);
 </script>
