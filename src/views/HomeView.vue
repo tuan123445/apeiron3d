@@ -55,6 +55,7 @@
 
 <script setup>
 import * as THREE from "three";
+import gsap from "gsap";
 import * as TWEEN from "@tweenjs/tween.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -271,16 +272,25 @@ function addStartLogo() {
     "./src/logo.glb",
     (gltf) => {
       startLogo = gltf.scene;
-      camera.lookAt(
-        startLogo.position.x,
-        startLogo.position.y,
-        startLogo.position.z
-      );
-      controls.target.set(
-        startLogo.position.x,
-        startLogo.position.y,
-        startLogo.position.z
-      );
+      // camera.lookAt(
+      //   startLogo.position.x,
+      //   startLogo.position.y,
+      //   startLogo.position.z
+      // );
+      // controls.target.set(
+      //   startLogo.position.x,
+      //   startLogo.position.y,
+      //   startLogo.position.z
+      // );
+      gsap.to(camera.position, {
+        x: startLogo.position.x,
+        y: startLogo.position.y,
+        z: 30,
+        duration: 5,
+        onUpdate: function () {
+          camera.lookAt(0, 0, 0);
+        },
+      });
       new TWEEN.Tween(startLogo.rotation)
         .repeat(Infinity)
         .to({ x: 0, y: Math.PI, z: 0 })
@@ -325,8 +335,17 @@ function addDoodBar() {
     (gltf) => {
       doodBar = gltf.scene;
       // gltf.scene.position.set(-5, 0, -10);
-      camera.lookAt(0, 0, 0);
-      controls.target.set(0, 0, 0);
+      scene.add(gltf.scene);
+      gsap.to(camera.position, {
+        x: 0,
+        y: 35,
+        z: 80,
+        duration: 3,
+        onUpdate: function () {
+          camera.lookAt(0, 0, 0);
+          controls.target.set(0, 0, 0);
+        },
+      });
       scene.background = new THREE.Color(0x000000);
       scene.add(gltf.scene);
       mixer = new THREE.AnimationMixer(gltf.scene);
@@ -356,8 +375,16 @@ function addStarShop() {
       starShop = gltf.scene;
       scene.background = new THREE.Color(0xbfe3dd);
       scene.add(gltf.scene);
-      camera.lookAt(0, 0, 0);
-      controls.target.set(0, 0, 0);
+      gsap.to(camera.position, {
+        x: 0,
+        y: 80,
+        z: 130,
+        duration: 3,
+        onUpdate: function () {
+          camera.lookAt(0, 0, 0);
+          controls.target.set(0, 0, 0);
+        },
+      });
       mixer = new THREE.AnimationMixer(gltf.scene);
       clips = gltf.animations;
 
@@ -386,8 +413,16 @@ function addTemple() {
       starShop = gltf.scene;
       scene.background = new THREE.Color(0xbfe3dd);
       scene.add(gltf.scene);
-      camera.lookAt(0, 0, 0);
-      controls.target.set(0, 0, 0);
+      gsap.to(camera.position, {
+        x: 0,
+        y: 40,
+        z: 70,
+        duration: 3,
+        onUpdate: function () {
+          camera.lookAt(0, 0, 0);
+          controls.target.set(0, 0, 0);
+        },
+      });
       mixer = new THREE.AnimationMixer(gltf.scene);
       clips = gltf.animations;
       clips.forEach((ani) => {
@@ -410,9 +445,17 @@ function addBoard() {
     "src/board.glb",
     (gltf) => {
       gltf.scene.position.set(5, 0, 10);
-      camera.lookAt(5, 2, 10);
-      controls.target.set(5, 2, 10);
       scene.add(gltf.scene);
+      gsap.to(camera.position, {
+        x: 5,
+        y: 5,
+        z: 25,
+        duration: 3,
+        onUpdate: function () {
+          camera.lookAt(5, 0, 0);
+          controls.target.set(5, 0, 0);
+        },
+      });
     },
     undefined,
     function (err) {
@@ -434,8 +477,16 @@ function addObject(link, type) {
       }
       scene.background = new THREE.Color(0x000000);
       scene.add(gltf.scene);
-      camera.lookAt(0, 0, 0);
-      controls.target.set(0, 0, 0);
+      gsap.to(camera.position, {
+        x: 0,
+        y: 80,
+        z: 100,
+        duration: 3,
+        onUpdate: function () {
+          camera.lookAt(0, 0, 0);
+          controls.target.set(0, 0, 0);
+        },
+      });
       mixer = new THREE.AnimationMixer(gltf.scene);
       clips = gltf.animations;
     },
