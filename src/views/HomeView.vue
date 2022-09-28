@@ -489,6 +489,10 @@ function addObject(link, type) {
       });
       mixer = new THREE.AnimationMixer(gltf.scene);
       clips = gltf.animations;
+      if (type == "meeShop") {
+        let ghostAction = mixer.clipAction(clips[0]);
+        ghostAction.play();
+      }
     },
     undefined,
     function (err) {
