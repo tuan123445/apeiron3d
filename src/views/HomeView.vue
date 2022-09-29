@@ -394,8 +394,8 @@ function addStarShop() {
       catAction.play();
       carAnimation();
       // doods
-      callAnimation("Cube.020Action");
-      callAnimation("dood1Action");
+      callAnimation("Animation.002Action");
+      // callAnimation("dood1Action");
     },
     undefined,
     function (err) {
@@ -490,8 +490,11 @@ function addObject(link, type) {
       mixer = new THREE.AnimationMixer(gltf.scene);
       clips = gltf.animations;
       if (type == "meeShop") {
-        let ghostAction = mixer.clipAction(clips[0]);
-        ghostAction.play();
+        clips.forEach((ani) => {
+          const animation = THREE.AnimationClip.findByName(clips, ani.name);
+          let animationAction = mixer.clipAction(animation);
+          animationAction.play();
+        });
       }
     },
     undefined,
