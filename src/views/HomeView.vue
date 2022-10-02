@@ -97,6 +97,9 @@ function onPointerMove(event) {
     }
     intersects.forEach((item) => {
       switch (item.object.name) {
+        case "board":
+          window.location.replace("explore");
+          break;
         case "Discord":
           window.open("https://discord.gg/UAJsWwZygr", "_blank");
           break;
